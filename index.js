@@ -99,6 +99,7 @@ app.get('/', async (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>RSS Feed Reader</title>
       <link href="/styles.css" rel="stylesheet">
+      <script src="https://cdn.tailwindcss.com"></script>
       <script>
         function toggleTable() {
           const table = document.getElementById('rssTable');
@@ -185,13 +186,14 @@ app.get('/rss/:id', async (req, res) => {
   const feedId = req.params.id;
 
   try {
+    const feeds = await knex('rss_feeds').select('*');
     const feedRecord = await knex('rss_feeds').where({ id: feedId }).first();
     if (!feedRecord) {
       return res.status(404).send('RSS feed not found');
     }
 
     const feed = await parser.parseURL(feedRecord.url);
-    let htmlContent = `<h1 class="text-xl font-bold mb-4">${feed.title}</h1><ul class="space-y-4">`;
+    let htmlContent = '';
 
     // Sort items by publication date
     feed.items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
@@ -201,7 +203,7 @@ app.get('/rss/:id', async (req, res) => {
                          getImageFromEnclosure(item.enclosure) ||
                          getImageFromMediaContent(item);
       htmlContent += `
-        <li class="p-4 bg-gray-50 rounded-lg shadow-md flex items-start">
+        <div class="p-4 bg-gray-50 rounded-lg shadow-md flex flex-col items-start">
           <div class="flex-shrink-0">
             <img src="${getFaviconUrl(item.link)}" alt="Favicon" class="w-4 h-4 mr-2">
           </div>
@@ -210,11 +212,10 @@ app.get('/rss/:id', async (req, res) => {
             <p class="mt-2 text-gray-700">${item.contentSnippet}</p>
             <p class="mt-1 text-sm text-gray-500">${item.pubDate}</p>
           </div>
-          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="h-full"></div>` : ''}
-        </li>`;
+          ${firstImage ? `<div class="flex-shrink-0 mt-4"><img src="${firstImage}" alt="Image" class="w-full h-48 object-cover"></div>` : ''}
+        </div>`;
     }
 
-    htmlContent += '</ul>';
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -223,6 +224,8 @@ app.get('/rss/:id', async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${feed.title}</title>
         <link href="/styles.css" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
         <script>
           async function archiveUrl(url) {
             try {
@@ -247,8 +250,30 @@ app.get('/rss/:id', async (req, res) => {
         </script>
       </head>
       <body class="bg-gray-100 p-6">
-        <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-          ${htmlContent}
+        <div class="flex">
+          <div class="w-1/4 bg-white p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4">RSS Feeds</h2>
+            <ul class="space-y-2">
+              <a href="/all-rss" class="block">
+                <div class="flex items-center h-1">
+                  <i class="fas fa-rss w-4 h-4 mr-2 text-orange-500"></i>
+                  <span class="text-indigo-600 hover:underline">All RSS</span>
+                </div>
+              </a>
+              <br></br>
+              ${feeds.map(feed => `
+                <a href="/rss/${feed.id}" class="block">
+                  <div class="flex items-center h-1">
+                    <img src="${getFaviconUrl(feed.url)}" alt="Favicon" class="w-4 h-4 mr-2">
+                  </div>
+                </a>
+                <br></br>
+              `).join('')}
+            </ul>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full bg-white p-6 rounded-lg shadow-md ml-4">
+            ${htmlContent}
+          </div>
         </div>
       </body>
       </html>
@@ -284,14 +309,14 @@ app.get('/all-rss', async (req, res) => {
     // Sort all items by publication date
     allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
-    let htmlContent = '<h1 class="text-xl font-bold mb-4">All RSS Feeds</h1><ul class="space-y-4">';
+    let htmlContent = '';
 
     for (const item of allItems) {
       const firstImage = getFirstImage(item.content || item['content:encoded'] || '') ||
                          getImageFromEnclosure(item.enclosure) ||
                          getImageFromMediaContent(item);
       htmlContent += `
-        <li class="p-4 bg-gray-50 rounded-lg shadow-md flex items-start">
+        <div class="p-4 bg-gray-50 rounded-lg shadow-md flex flex-col items-start">
           <div class="flex-shrink-0">
             <img src="${getFaviconUrl(item.link)}" alt="Favicon" class="w-4 h-4 mr-2">
           </div>
@@ -300,11 +325,10 @@ app.get('/all-rss', async (req, res) => {
             <p class="mt-2 text-gray-700">${item.contentSnippet}</p>
             <p class="mt-1 text-sm text-gray-500">${item.pubDate}</p>
           </div>
-          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="h-full"></div>` : ''}
-        </li>`;
+          ${firstImage ? `<div class="flex-shrink-0 mt-4"><img src="${firstImage}" alt="Image" class="w-full h-48 object-cover"></div>` : ''}
+        </div>`;
     }
 
-    htmlContent += '</ul>';
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -313,6 +337,7 @@ app.get('/all-rss', async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>All RSS Feeds</title>
         <link href="/styles.css" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
         <script>
           async function handleFormSubmit(event, url) {
             event.preventDefault();
@@ -327,21 +352,45 @@ app.get('/all-rss', async (req, res) => {
               alert('An error occurred. Please try again.');
             }
           }
+
+          async function archiveUrl(url) {
+            try {
+              const response = await fetch('/archive', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url })
+              });
+              const data = await response.json();
+              if (data.archivedUrl) {
+                window.open(data.archivedUrl, '_blank');
+              } else {
+                alert('All archive services failed');
+              }
+            } catch (error) {
+              console.error('Error archiving URL:', error.message);
+              alert('All archive services failed');
+            }
+          }
         </script>
       </head>
       <body class="bg-gray-100 p-6">
         <div class="flex">
-          <div class="w-1/4 bg-white p-4 rounded-lg shadow-md">
+          <div class="w-1/6 bg-white p-4 rounded-lg shadow-md">
             <h2 class="text-xl font-bold mb-4">RSS Feeds</h2>
             <ul class="space-y-2">
-              ${feeds.map(feed => `
-                <li>
-                  <a href="/rss/${feed.id}" class="text-indigo-600 hover:underline">${feed.url}</a>
-                </li>
-              `).join('')}
-            </ul>
+                ${feeds.map(feed => `
+                  <a href="/rss/${feed.id}" class="block">
+                    <div class="flex items-center h-1">
+                      <img src="${getFaviconUrl(feed.url)}" alt="Favicon" class="w-4 h-4 mr-2">
+                    </div>
+                  </a>
+                  <br></br>
+                `).join('')}
+              </ul>
           </div>
-          <div class="w-3/4 bg-white p-6 rounded-lg shadow-md ml-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full bg-white p-6 rounded-lg shadow-md ml-4">
             ${htmlContent}
           </div>
         </div>
