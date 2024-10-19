@@ -74,74 +74,70 @@ async function getArchivedUrl(url) {
 }
 
 app.get('/', async (req, res) => {
-  try {
-    const feeds = await knex('rss_feeds').select('*');
-    let feedRows = feeds.map(feed => `
-      <tr>
-        <td class="border px-4 py-2">${feed.url}</td>
-        <td class="border px-4 py-2">
-          <form action="/delete-rss" method="post">
-            <input type="hidden" name="id" value="${feed.id}">
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded-full">Delete</button>
-          </form>
-          <form action="/hide-rss" method="post">
-            <input type="hidden" name="id" value="${feed.id}">
-            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded-full"">Hide</button>
-          </form>
-        </td>
-      </tr>
-    `).join('');
+  const feeds = await knex('rss_feeds').select('*');
+  let feedRows = feeds.map(feed => `
+    <tr>
+      <td class="border px-4 py-2">${feed.url}</td>
+      <td class="border px-4 py-2">
+        <form action="/delete-rss" method="post" class="inline">
+          <input type="hidden" name="id" value="${feed.id}">
+          <button type="submit" class="bg-red-500 hover:bg-red-700 text-black font-bold py-2 px-4 rounded-full">Delete</button>
+        </form>
+        <form action="/hide-rss" method="post" class="inline">
+          <input type="hidden" name="id" value="${feed.id}">
+          <button type="submit" class="bg-yellow-500 hover:bg-yellow-700 text-black font-bold py-2 px-4 rounded-full">${feed.is_hidden ? 'Show' : 'Hide'}</button>
+        </form>
+      </td>
+    </tr>
+  `).join('');
 
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>RSS Feed Reader</title>
-        <link href="/styles.css" rel="stylesheet">
-        <script>
-          function toggleTable() {
-            const table = document.getElementById('rssTable');
-            table.style.display = table.style.display === 'none' ? 'block' : 'none';
-          }
-        </script>
-      </head>
-      <body class="bg-gray-100 p-6">
-        <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-          <h1 class="text-2xl font-bold mb-4">RSS Feed Reader</h1>
-          <button onclick="toggleTable()" class="bg-indigo-600 text-white px-4 py-2 rounded">Manage RSS Feeds</button>
-          <div id="rssTable" style="display: none;" class="mt-4">
-            <form action="/rss" method="post" class="mb-4">
-              <label for="url" class="block text-sm font-medium text-gray-700">Enter RSS Feed URL:</label>
-              <input type="text" id="url" name="url" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-              <button type="submit" class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md">Save RSS</button>
-            </form>
-            <table class="min-w-full bg-white">
-              <thead>
-                <tr>
-                  <th class="px-4 py-2">RSS Feed URL</th>
-                  <th class="px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${feedRows}
-              </tbody>
-            </table>
-          </div>
-          <h2 class="text-xl font-bold mb-4 mt-4">Saved RSS Feeds</h2>
-          <ul>
-            ${feeds.map(feed => `<li><a href="/rss/${feed.id}" class="text-indigo-600 hover:underline">${feed.url}</a></li>`).join('')}
-          </ul>
-          <a href="/all-rss" class="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md">View All RSS Contents</a>
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>RSS Feed Reader</title>
+      <link href="/styles.css" rel="stylesheet">
+      <script>
+        function toggleTable() {
+          const table = document.getElementById('rssTable');
+          table.style.display = table.style.display === 'none' ? 'block' : 'none';
+        }
+      </script>
+    </head>
+    <body class="bg-gray-100 p-6">
+      <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">RSS Feed Reader</h1>
+        <button onclick="toggleTable()" class="bg-indigo-600 text-white px-4 py-2 rounded">Manage RSS Feeds</button>
+        <div id="rssTable" style="display: none;" class="mt-4">
+          <form action="/rss" method="post" class="mb-4">
+            <label for="url" class="block text-sm font-medium text-gray-700">Enter RSS Feed URL:</label>
+            <input type="text" id="url" name="url" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <button type="submit" class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md">Save RSS</button>
+          </form>
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th class="px-4 py-2">RSS Feed URL</th>
+                <th class="px-4 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${feedRows}
+            </tbody>
+          </table>
         </div>
-      </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching RSS feeds');
-  }
+        <h2 class="text-xl font-bold mb-4 mt-4">Saved RSS Feeds</h2>
+        <ul>
+          ${feeds.map(feed => `<li><a href="/rss/${feed.id}" class="text-indigo-600 hover:underline">${feed.url}</a></li>`).join('')}
+        </ul>
+        <br></br>
+        <a href="/all-rss" class="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md">View All RSS Contents</a>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 app.post('/rss', async (req, res) => {
@@ -177,13 +173,11 @@ app.post('/hide-rss', async (req, res) => {
 
   try {
     const feed = await knex('rss_feeds').where({ id: feedId }).first();
-    if (feed) {
-      await knex('rss_feeds').where({ id: feedId }).update({ is_hidden: !feed.is_hidden });
-    }
+    await knex('rss_feeds').where({ id: feedId }).update({ is_hidden: !feed.is_hidden });
     res.redirect('/');
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error hiding the RSS feed');
+    res.status(500).send('Error hiding the RSS feed URL');
   }
 });
 
@@ -191,7 +185,7 @@ app.get('/rss/:id', async (req, res) => {
   const feedId = req.params.id;
 
   try {
-    const feedRecord = await knex('rss_feeds').where({ id: feedId, is_hidden: false }).first();
+    const feedRecord = await knex('rss_feeds').where({ id: feedId }).first();
     if (!feedRecord) {
       return res.status(404).send('RSS feed not found');
     }
@@ -216,7 +210,7 @@ app.get('/rss/:id', async (req, res) => {
             <p class="mt-2 text-gray-700">${item.contentSnippet}</p>
             <p class="mt-1 text-sm text-gray-500">${item.pubDate}</p>
           </div>
-          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="w-16 h-16"></div>` : ''}
+          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="h-full"></div>` : ''}
         </li>`;
     }
 
@@ -279,7 +273,7 @@ app.post('/archive', async (req, res) => {
 
 app.get('/all-rss', async (req, res) => {
   try {
-    const feeds = await knex('rss_feeds').where({ is_hidden: false }).select('*');
+    const feeds = await knex('rss_feeds').select('*');
     let allItems = [];
 
     for (const feedRecord of feeds) {
@@ -306,7 +300,7 @@ app.get('/all-rss', async (req, res) => {
             <p class="mt-2 text-gray-700">${item.contentSnippet}</p>
             <p class="mt-1 text-sm text-gray-500">${item.pubDate}</p>
           </div>
-          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="w-16 h-16"></div>` : ''}
+          ${firstImage ? `<div class="flex-shrink-0 ml-4"><img src="${firstImage}" alt="Image" class="h-full"></div>` : ''}
         </li>`;
     }
 
@@ -320,69 +314,36 @@ app.get('/all-rss', async (req, res) => {
         <title>All RSS Feeds</title>
         <link href="/styles.css" rel="stylesheet">
         <script>
-          async function archiveUrl(url) {
-            try {
-              const response = await fetch('/archive', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ url })
-              });
-              const data = await response.json();
-              if (data.archivedUrl) {
-                window.open(data.archivedUrl, '_blank');
-              } else {
-                alert('All archive services failed');
-              }
-            } catch (error) {
-              console.error('Error archiving URL:', error.message);
-              alert('All archive services failed');
+          async function handleFormSubmit(event, url) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const response = await fetch(url, {
+              method: 'POST',
+              body: formData
+            });
+            if (response.ok) {
+              location.reload();
+            } else {
+              alert('An error occurred. Please try again.');
             }
-          }
-
-          function toggleTable() {
-            const table = document.getElementById('rssTable');
-            table.style.display = table.style.display === 'none' ? 'block' : 'none';
           }
         </script>
       </head>
       <body class="bg-gray-100 p-6">
-        <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-          <button onclick="toggleTable()" class="bg-indigo-600 text-white px-4 py-2 rounded">Manage RSS Feeds</button>
-          <div id="rssTable" style="display: none;" class="mt-4">
-            <form action="/rss" method="post" class="mb-4">
-              <label for="url" class="block text-sm font-medium text-gray-700">Enter RSS Feed URL:</label>
-              <input type="text" id="url" name="url" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-              <button type="submit" class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md">Save RSS</button>
-            </form>
-            <table class="min-w-full bg-white">
-              <thead>
-                <tr>
-                  <th class="px-4 py-2">RSS Feed URL</th>
-                  <th class="px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${feeds.map(feed => `
-                  <tr>
-                    <td class="border px-4 py-2">${feed.url}</td>
-                    <td class="border px-4 py-2">
-                      <form action="/delete-rss" method="post">
-                        <input type="hidden" name="id" value="${feed.id}">
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded-full">Delete</button>
-                      </form>
-                      <form action="/hide-rss" method="post">
-                        <input type="hidden" name="id" value="${feed.id}">
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded-full">${feed.is_hidden ? 'Show' : 'Hide'}</button>
-                      </form>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+        <div class="flex">
+          <div class="w-1/4 bg-white p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4">RSS Feeds</h2>
+            <ul class="space-y-2">
+              ${feeds.map(feed => `
+                <li>
+                  <a href="/rss/${feed.id}" class="text-indigo-600 hover:underline">${feed.url}</a>
+                </li>
+              `).join('')}
+            </ul>
           </div>
-          ${htmlContent}
+          <div class="w-3/4 bg-white p-6 rounded-lg shadow-md ml-4">
+            ${htmlContent}
+          </div>
         </div>
       </body>
       </html>
